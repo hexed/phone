@@ -3,77 +3,71 @@ name: Build and publish
 on:
   push:
     branches:
-    - main
+      - main
   pull_request:
     branches:
-    - main
+      - main
   workflow_dispatch:
   repository_dispatch:
 
 jobs:
   build:
-    name: Build
+    name: Test build
     runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'pull_request' }}
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 7
 
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3
       with:
-        node-version: "16.x"
+        node-version-file: ".nvmrc"
+        cache: "pnpm"
 
-    - name: Restore cached modules
-      uses: actions/cache@v2
-      id: cache-packages
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Test worker build
+      uses: cloudflare/wrangler-action@4c10c1822abba527d820b29e6333e7f5dac2cabd # tag=2.0.0
       with:
-        path: node_modules
-        key: ${{ hashFiles('**/package-lock.json') }}
-
-    - name: Fallback if module cache fails
-      run: npm ci
-      if: steps.cache-packages.outputs.cache-hit != 'true'
-
-    - name: Restore cached build
-      uses: actions/cache@v2
-      id: cache-build
-      with:
-        path: build
-        key: ${{ github.sha }}
-
-    - name: Fallback if build cache fails
-      run: npm run build
-      if: steps.cache-build.outputs.cache-hit != 'true'
+        apiToken: ${{ secrets.CF_API_TOKEN }}
+        accountId: ${{ secrets.CF_ACCOUNT_ID }}
+        publish: false
 
   publish:
     name: Publish
     runs-on: ubuntu-latest
 
-    if: ${{ github.event.name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' }}
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 7
 
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3
       with:
-        node-version: "16.x"
+        node-version-file: ".nvmrc"
+        cache: "pnpm"
 
-    - name: Restore cached modules
-      uses: actions/cache@v2
-      id: cache-packages
-      with:
-        path: node_modules
-        key: ${{ hashFiles('package-lock.json') }}
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
 
-    - name: Fallback if module cache fails
-      run: npm ci
-      if: steps.cache-packages.outputs.cache-hit != 'true'
-
-    - name: Build and Publish to Worker
-      uses: cloudflare/wrangler-action@2.0.0
+    - name: Publish to Worker
+      uses: cloudflare/wrangler-action@4c10c1822abba527d820b29e6333e7f5dac2cabd # tag=2.0.0
       with:
         apiToken: ${{ secrets.CF_API_TOKEN }}
         accountId: ${{ secrets.CF_ACCOUNT_ID }}

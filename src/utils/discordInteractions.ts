@@ -2,7 +2,7 @@ import type { APIInteractionResponse, RESTPatchAPIWebhookWithTokenMessageJSONBod
 import { RouteBases, Routes } from "discord-api-types/v10";
 
 export function respond(response: APIInteractionResponse): Response {
-  return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }});
+  return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" } });
 }
 
 export async function update(id: string, token: string, payload: RESTPatchAPIWebhookWithTokenMessageJSONBody): Promise<void> {
@@ -10,6 +10,6 @@ export async function update(id: string, token: string, payload: RESTPatchAPIWeb
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-    cf: { cacheKey: `${String(Date.now())}:${String(Math.random())}` },
+    cf: { cacheTtl: 0 },
   });
 }
